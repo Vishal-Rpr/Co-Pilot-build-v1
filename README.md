@@ -1,10 +1,10 @@
 # PM Co-pilot v0
 
-An AI agent that helps product managers write PRDs in their own style and create Linear tickets from requirements.
+An AI agent that helps product managers write PRDs, generate user stories, and visualize workflows in Excalidraw - in the users style of writing
 
 ## Problem
 
-PMs spend 4-8 hours writing PRDs from scratch. Generic AI tools produce cookie-cutter output that doesn't match your voice or your team's conventions. You end up rewriting most of it anyway.
+Generic AI tools produce cookie-cutter output that doesn't match your voice or your team's conventions. You end up rewriting most of it anyway.
 
 ## Solution
 
