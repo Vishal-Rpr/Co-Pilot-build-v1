@@ -3,6 +3,7 @@
 import click
 from .rag import ingest_references, retrieve
 from .agent import generate_prd, generate_tickets
+from .eval import evaluate_document
 
 
 @click.group()
@@ -30,7 +31,8 @@ def ingest():
 @click.option("--context", "-c", default="", help="Additional context for the PRD.")
 @click.option("--no-rag", is_flag=True, help="Skip RAG retrieval, use generic template.")
 @click.option("--output", "-o", default=None, help="Save PRD to file.")
-def generate(topic: str, context: str, no_rag: bool, output: str):
+@click.option("--eval", "run_eval", is_flag=True, help="Auto-evaluate the generated PRD.")
+def generate(topic: str, context: str, no_rag: bool, output: str, run_eval: bool):
     """Generate a PRD for a given topic."""
     click.echo(f"Generating PRD for: {topic}")
 
@@ -53,6 +55,34 @@ def generate(topic: str, context: str, no_rag: bool, output: str):
         click.echo("\n" + "=" * 60)
         click.echo(prd)
         click.echo("=" * 60)
+
+    if run_eval:
+        click.echo("\nRunning eval...")
+        style_ref = retrieve(prd[:300], doc_type="prd") if not no_rag else ""
+        result = evaluate_document(prd, retrieved_chunks=style_ref)
+        click.echo("\n" + result["scorecard"])
+        click.echo(f"\nScore: {result['total']}/25 | Verdict: {result['verdict']}")
+
+
+@cli.command("eval")
+@click.argument("doc_file", type=click.Path(exists=True))
+@click.option("--no-rag", is_flag=True, help="Skip RAG style retrieval for scoring.")
+def eval_cmd(doc_file: str, no_rag: bool):
+    """Evaluate a PRD or spec against the 5-dimension quality rubric."""
+    with open(doc_file, "r", encoding="utf-8") as f:
+        content = f.read()
+
+    click.echo(f"Evaluating: {doc_file}")
+
+    style_ref = ""
+    if not no_rag:
+        style_ref = retrieve(content[:300], doc_type="prd")
+        if style_ref:
+            click.echo("Found reference docs for style comparison.")
+
+    result = evaluate_document(content, retrieved_chunks=style_ref)
+    click.echo("\n" + result["scorecard"])
+    click.echo(f"\nScore: {result['total']}/25 | Verdict: {result['verdict']}")
 
 
 @cli.command()

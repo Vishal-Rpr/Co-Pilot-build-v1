@@ -46,8 +46,14 @@ PM Co-pilot uses RAG (Retrieval-Augmented Generation) to learn your writing styl
 # Generate a PRD matching your writing style
 python -m copilot generate "credit limit enforcement for B2B clients" -o credit-limit-prd.md
 
+# Generate and auto-evaluate in one shot
+python -m copilot generate "shipment tracking" --eval
+
 # Generate without RAG (generic template)
 python -m copilot generate "feature name" --no-rag
+
+# Evaluate any PRD or spec against the quality rubric
+python -m copilot eval credit-limit-prd.md
 
 # Break a PRD into tickets (default: Linear format)
 python -m copilot tickets credit-limit-prd.md
@@ -66,8 +72,9 @@ python -m copilot publish credit-limit-prd.md --to confluence --space PM
 
 ```
 copilot/
-  __main__.py          CLI entry point (Click). Commands: ingest, generate, tickets, diagram, publish
+  __main__.py          CLI entry point (Click). Commands: ingest, generate, eval, tickets, diagram, publish
   agent.py             Claude API calls (generate_prd, generate_tickets)
+  eval.py              5-dimension quality rubric evaluation (completeness, domain accuracy, actionability, style consistency, metric specificity)
   rag.py               ChromaDB ingestion + retrieval with doc_type filtering (prd | ticket)
   prompts.py           All system/user prompts and templates
   excalidraw.py        Excalidraw JSON diagram generation
@@ -76,21 +83,33 @@ copilot/
   confluence_client.py Confluence REST API integration
 reference_docs/        Your example PRDs for RAG style matching
 reference_tickets/     Your past tickets for ticket style matching
+tests/
+  test_rag.py          13 pytest tests for chunking, ingestion, and retrieval
 ```
 
 ## What This Demonstrates
 
 - **RAG pipeline:** Chunking, embedding, similarity search, retrieval with doc_type filtering
+- **Eval framework:** 5-dimension rubric with automated scoring, verdicts, and improvement suggestions
 - **Prompt engineering:** System prompts, style-matching instructions, structured generation
 - **Multi-integration architecture:** Linear, Jira, Confluence, Excalidraw via a consistent lightweight pattern
 - **CLI design:** Click-based interface with composable commands
-- **AI product thinking:** Style matching as a differentiator, eval framework concepts, cost-conscious model selection
+- **Test coverage:** pytest suite for the RAG pipeline (chunking, ingestion, retrieval, doc_type filtering)
+- **AI product thinking:** Style matching as a differentiator, opt-in eval (cost-conscious default), model selection tradeoffs
 
-## Upcoming
+## Roadmap
 
-- **Google Docs publishing:** `--to googledocs` flag on the publish command for teams that use Google Docs as their PRD home
-- **Eval scoring:** Built-in quality rubric to score generated PRDs before sharing with stakeholders
-- **Interactive mode:** Conversational PRD refinement instead of single-shot generation
+This is a CLI tool by design -- it validates the core AI pipeline with the least build effort. The progression:
+
+1. **CLI** (current) -- prove the engine works: RAG, generation, eval, integrations
+2. **Interactive mode** (next) -- multi-turn conversational PRD refinement in the terminal, with session context
+3. **Web UI / plugin** (future) -- the interface non-technical PMs would actually use day-to-day
+
+### Upcoming
+
+- **Interactive mode:** Conversational session with memory -- "generate a PRD", "beef up the metrics", "now create tickets from section 3"
+- **Google Docs publishing:** `--to googledocs` flag on the publish command
+- **Customizable eval rubric:** Load scoring dimensions from a YAML file instead of hardcoded prompt
 
 ## Author
 

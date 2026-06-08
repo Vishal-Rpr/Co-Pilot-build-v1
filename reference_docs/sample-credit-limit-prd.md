@@ -1,75 +1,150 @@
-# PRD: Automated Credit Limit Enforcement
+# PRD: Client credit limit and accounting system integration
 
-## Summary
+## Overview
+Improve the integration between our freight forwarding application and our accounting system to enable holistic client credit management. This system will unify invoicing, payment tracking, credit/debit note handling, and credit limit evaluation into a single source of truth for customer financial health.
 
-Build an automated credit limit enforcement system that prevents B2B clients from exceeding their approved credit thresholds, reducing manual intervention by the finance team and cutting overdue receivables.
+## Goals
+- Provide real-time visibility into each customer's credit position
+- Automate the sync of invoicing and payment data between our application and accounting system
+- Enable credit limit assignment, enforcement, and revision workflows
+- Reduce manual reconciliation effort between our app and accounting system
 
-## Background & Context
+## Non-goals
+- Replacing the accounting system as the system of record for accounting
+- Automating credit limit decisions (this is a decision-support tool, not auto-approval)
 
-Currently, credit limit checks are manual. Account managers verify limits in a spreadsheet before confirming shipments. This creates bottlenecks during peak season and has led to 3 cases of exceeded limits in Q1, totaling $120K in overdue receivables.
+---
 
-The finance team spends ~8 hours/week on credit monitoring. We also lose deals when the approval process takes >24 hours because clients go to competitors.
+## Component 1: Invoice portion
 
-## Objective & Key Results
+Tracks the full lifecycle of each invoice and all adjustments made against it.
 
-**Objective:** Reduce financial risk from credit overruns while maintaining booking speed.
+### Data points
+| Field | Description | Source |
+|-------|-------------|--------|
+| Invoice ID | Unique identifier synced from accounting system | Accounting system |
+| Invoice value | Original billed amount | Accounting system |
+| Payments applied | Payments received and matched against this invoice | Accounting system |
+| Credit notes (invoice-level) | Credit memos applied/adjusted against this specific invoice | Accounting system |
+| Debit notes (invoice-level) | Debit memos applied/adjusted against this specific invoice | Accounting system |
+| Invoice revisions | Any amendments to the original invoice value or line items | Accounting system / App |
 
-**Key Results:**
-- KR1: Zero credit limit breaches per quarter (from 3 in Q1)
-- KR2: Credit check response time < 2 seconds (from avg 24 hours manual)
-- KR3: Finance team time on credit monitoring reduced by 80%
+### Calculated fields
+- **Net invoice outstanding** = Invoice value - Payments applied - Credit notes adjusted + Debit notes adjusted (accounting for revisions)
 
-## Target Users
+### Key considerations
+- Invoices may be partially paid; the system must track partial payment application
+- Revisions to invoices should maintain an audit trail (original value, revised value, reason, timestamp)
+- Credit and debit notes at the invoice level must be distinguished from customer-level notes (see Component 2)
 
-**Primary:** Operations team processing bookings
-- Pain: They can't confirm bookings without finance sign-off on credit
-- Need: Instant, automated credit validation at booking time
+---
 
-**Secondary:** Finance team managing credit risk
-- Pain: Manual monitoring is reactive, not preventive
-- Need: Automated enforcement with override capabilities for edge cases
+## Component 2: Customer level balances
 
-## Value Proposition
+Tracks credits, debits, and payments at the customer level that have NOT yet been adjusted against a specific invoice.
 
-- Operations books faster (seconds vs. hours for credit approval)
-- Finance shifts from monitoring to strategic credit decisions
-- Company reduces overdue receivables and associated costs
-- Clients get faster booking confirmations
+### Data points
+| Field | Description | Source |
+|-------|-------------|--------|
+| Unadjusted advances/payments | Payments or deposits made by the customer not yet applied to an invoice | Accounting system |
+| Customer-level credit notes | Credit memos issued to the customer not tied to a specific invoice | Accounting system |
+| Customer-level debit notes | Debit memos issued to the customer not tied to a specific invoice | Accounting system |
 
-## Solution
+### Key considerations
+- In the accounting system, credit memos can exist at the customer level without being associated to any invoice. These sit as open credits on the customer's account and can be applied to future invoices or refunded.
+- Unadjusted advances should be flagged for reconciliation -- they represent customer funds we hold
+- The system should surface aging of unadjusted items (e.g., "Customer X has a $5,000 unapplied credit note from 45 days ago")
 
-### Key Features
+---
 
-1. **Real-time credit check at booking** - System validates available credit before confirming a booking. Shows green/yellow/red status.
-2. **Automated holds** - Bookings that exceed credit limits are held, not rejected. Client and ops are notified.
-3. **Override workflow** - Finance can approve overrides with a reason. Creates an audit trail.
-4. **Dashboard** - Real-time view of credit utilization across all accounts.
+## Component 3: Customer credit evaluation
 
-### UX Flow
+Manages the documentation, assignment, and governance of credit limits for each client.
 
-Ops creates booking > System checks credit > If within limit, auto-approve > If exceeded, hold and notify > Finance reviews hold > Approve with override or reject
+### Workflow
+1. **Documentation** -- Collect required financial documents from the client (e.g., bank references, trade references, financial statements)
+2. **Credit limit assignment** -- Based on evaluation, assign a credit limit amount to the customer
+3. **Validity period** -- Each credit limit has an effective date and expiry date
+4. **Revision** -- Credit limits can be revised (up or down) based on payment behavior, changed business conditions, or periodic review
 
-### Technical Notes
+### Data points
+| Field | Description |
+|-------|-------------|
+| Credit limit amount | Maximum outstanding balance allowed for this customer |
+| Effective date | When this credit limit takes effect |
+| Expiry date | When this credit limit expires and must be reviewed |
+| Supporting documents | Uploaded references and financial documents |
+| Approval status | Pending / Approved / Rejected / Under review |
+| Revision history | Log of all changes to the credit limit with reasons |
 
-- Integrates with existing TMS via REST API
-- Credit data sourced from ERP (SAP)
-- Sub-second response required (cache credit limits locally, sync every 15 min)
+### Key considerations
+- Credit limits should trigger alerts before expiry (e.g., 30 days before)
+- Revision requests should follow an approval workflow (who can request, who can approve)
+- Historical credit limit data should be retained for audit purposes
 
-## Assumptions & Risks
+---
 
-**Assumptions:**
-- Credit limit data in SAP is accurate and up-to-date
-- Ops team will adopt the new workflow without extensive retraining
-- 15-minute sync interval is sufficient (no real-time changes needed)
+## Component 4: Customer credit limit (the combined view)
 
-**Risks:**
-- ERP downtime could block all bookings (mitigation: cached fallback with 24hr TTL)
-- Clients may push back on automated holds (mitigation: clear communication, fast override path)
+This is the final, holistic output that combines all three components above into a single customer credit position.
 
-## Release Plan
+### Formula
 
-**Phase 1 (Week 1-3):** Real-time credit check + automated holds for top 20 accounts
-**Phase 2 (Week 4-5):** Override workflow + dashboard
-**Phase 3 (Week 6):** Roll out to all accounts + monitoring
+```
+Customer credit exposure =
+    Sum of all outstanding invoices (net of payments and adjustments at invoice level)
+  + Debit notes issued at customer level
+  - Credit notes issued at customer level
+  - Unadjusted advances/payments
+```
 
-**Success criteria for full launch:** Zero breaches in Phase 1 pilot, <5% false holds, override turnaround <1 hour.
+### Credit limit status
+
+```
+Available credit = Assigned credit limit - Customer credit exposure
+```
+
+| Status | Condition |
+|--------|-----------|
+| Within limit | Available credit > 0 |
+| Near limit | Available credit < 10% of assigned limit |
+| Over limit | Available credit < 0 |
+| Expired | Credit limit past expiry date |
+
+### Business rules
+- When a customer is **over limit**, new shipment bookings should be flagged/blocked (configurable per customer)
+- When a customer is **near limit**, an alert should be sent to the account manager and finance team
+- When a credit limit is **expired**, treat as zero limit until renewed
+- Dashboard should provide a real-time view of all customers' credit positions
+
+---
+
+## Sync architecture (accounting system integration)
+
+### Direction of data flow
+- **Accounting system -> App**: Invoice data, payment records, credit/debit memos, customer balances
+- **App -> Accounting system**: (Future) Credit limit status, hold flags
+
+### Sync frequency
+- To be determined: real-time webhook vs. scheduled polling (recommend starting with scheduled polling every 15-30 minutes, with option to move to webhooks)
+
+### Error handling
+- Failed syncs should be logged and retried
+- Data discrepancies between app and accounting system should surface in a reconciliation dashboard
+
+---
+
+## Open questions
+- What approval workflow is needed for credit limit assignment and revision? (Single approver vs. multi-level?)
+- Should we block shipment bookings when over limit, or just warn? Is this configurable per customer?
+- What is the desired sync frequency with accounting system?
+- Are there existing credit policies or documentation templates we should incorporate?
+- How should we handle customers with multiple sub-entities in the accounting system?
+
+---
+
+## Success metrics
+- Reduction in time spent on manual credit checks before booking
+- Reduction in overdue receivables from customers exceeding their credit limit
+- Percentage of customers with active, non-expired credit limits
+- Sync reliability (% successful syncs with accounting system)
