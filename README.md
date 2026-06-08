@@ -1,21 +1,22 @@
 # PM Co-pilot v0
 
-An AI agent that helps product managers write PRDs, generate user stories, and visualize workflows in Excalidraw - in the users style of writing
+A RAG-powered CLI tool that helps product managers write PRDs, generate tracker-ready tickets, visualize workflows in Excalidraw, and publish docs to Confluence -- all in the user's personal writing style.
 
 ## Problem
 
-Generic AI tools produce cookie-cutter output that doesn't match your voice or your team's conventions. You end up rewriting most of it anyway.
+Generic AI tools produce cookie-cutter output that doesn't match your voice or your team's conventions. You end up rewriting most of it anyway. And once you have a PRD, turning it into tickets, diagrams, and published docs is a separate manual process every time.
 
 ## Solution
 
-PM Co-pilot uses RAG (Retrieval-Augmented Generation) to learn your writing style from reference PRDs you provide. When you ask it to write a new PRD, it retrieves relevant sections from your past work and uses them as style examples for Claude, producing output that sounds like you.
+PM Co-pilot uses RAG (Retrieval-Augmented Generation) to learn your writing style from reference documents you provide. It retrieves relevant sections from your past PRDs and tickets, uses them as style examples for Claude, and produces output that sounds like you. Then it pushes that output wherever you need it -- Linear, Jira, Confluence, or Excalidraw.
 
 ## Architecture
 
-- **LLM:** Claude (via Anthropic API)
-- **RAG:** ChromaDB (local vector store) for style-matching retrieval
-- **MCP:** Linear integration for ticket creation
+- **LLM:** Claude (Sonnet 4.6, via Anthropic API)
+- **RAG:** ChromaDB local vector store with doc_type filtering (PRDs and tickets stored separately)
+- **Integrations:** Linear (GraphQL), Jira (REST v3), Confluence (REST), Excalidraw (JSON export)
 - **CLI:** Click-based command interface
+- **Pattern:** All integrations use lightweight REST/GraphQL via urllib with API keys from `.env`. No SDKs.
 
 ## Setup
 
@@ -33,32 +34,64 @@ PM Co-pilot uses RAG (Retrieval-Augmented Generation) to learn your writing styl
    ```
    copy .env.example .env
    ```
-5. Add 1-3 reference PRDs (markdown files) to `reference_docs/`
+5. Add reference PRDs to `reference_docs/` and past tickets to `reference_tickets/`
 6. Ingest your reference docs:
    ```
    python -m copilot ingest
    ```
-7. Generate a PRD:
-   ```
-   python -m copilot generate "credit limit enforcement for B2B clients"
-   ```
+
+## Usage
+
+```bash
+# Generate a PRD matching your writing style
+python -m copilot generate "credit limit enforcement for B2B clients" -o credit-limit-prd.md
+
+# Generate without RAG (generic template)
+python -m copilot generate "feature name" --no-rag
+
+# Break a PRD into tickets (default: Linear format)
+python -m copilot tickets credit-limit-prd.md
+
+# Break a PRD into Jira tickets
+python -m copilot tickets credit-limit-prd.md --target jira
+
+# Generate an Excalidraw architecture diagram
+python -m copilot diagram "credit limit and QuickBooks sync flow" -o credit-flow.excalidraw
+
+# Publish a PRD to Confluence
+python -m copilot publish credit-limit-prd.md --to confluence --space PM
+```
 
 ## Project Structure
 
 ```
 copilot/
-  __init__.py     - Package init
-  agent.py        - Main agent loop (Claude + tool routing)
-  rag.py          - Embed and retrieve from reference PRDs
-  linear_mcp.py   - Linear ticket creation via MCP
-  prompts.py      - System prompts and templates
-reference_docs/   - Your example PRDs (for RAG style matching)
-tests/            - Test scenarios for evaluation
+  __main__.py          CLI entry point (Click). Commands: ingest, generate, tickets, diagram, publish
+  agent.py             Claude API calls (generate_prd, generate_tickets)
+  rag.py               ChromaDB ingestion + retrieval with doc_type filtering (prd | ticket)
+  prompts.py           All system/user prompts and templates
+  excalidraw.py        Excalidraw JSON diagram generation
+  linear_mcp.py        Linear GraphQL API integration
+  jira_client.py       Jira REST API v3 integration
+  confluence_client.py Confluence REST API integration
+reference_docs/        Your example PRDs for RAG style matching
+reference_tickets/     Your past tickets for ticket style matching
 ```
 
 ## What This Demonstrates
 
-- RAG pipeline: chunking, embedding, similarity search, retrieval
-- Claude API: system prompts, structured generation, tool use
-- MCP integration: connecting LLMs to external tools
-- AI product evaluation: measuring output quality against reference style
+- **RAG pipeline:** Chunking, embedding, similarity search, retrieval with doc_type filtering
+- **Prompt engineering:** System prompts, style-matching instructions, structured generation
+- **Multi-integration architecture:** Linear, Jira, Confluence, Excalidraw via a consistent lightweight pattern
+- **CLI design:** Click-based interface with composable commands
+- **AI product thinking:** Style matching as a differentiator, eval framework concepts, cost-conscious model selection
+
+## Upcoming
+
+- **Google Docs publishing:** `--to googledocs` flag on the publish command for teams that use Google Docs as their PRD home
+- **Eval scoring:** Built-in quality rubric to score generated PRDs before sharing with stakeholders
+- **Interactive mode:** Conversational PRD refinement instead of single-shot generation
+
+## Author
+
+Vishal Baker -- Product Manager in B2B freight forwarding, building AI product tools.
