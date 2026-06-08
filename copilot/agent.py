@@ -1,4 +1,4 @@
-"""Main agent: Claude API calls for PRD generation."""
+"""Main agent: Claude API calls for PRD generation and ticket creation."""
 
 import os
 from anthropic import Anthropic
@@ -9,6 +9,7 @@ from .prompts import (
     PRD_USER_PROMPT,
     PRD_USER_PROMPT_WITH_RAG,
     LINEAR_TICKET_PROMPT,
+    TICKET_PROMPT_WITH_RAG,
 )
 
 load_dotenv()
@@ -51,16 +52,22 @@ def generate_prd(topic: str, retrieved_chunks: str = "", context: str = "") -> s
     return response.content[0].text
 
 
-def generate_tickets(prd_section: str) -> str:
-    """Break a PRD section into Linear tickets."""
+def generate_tickets(prd_section: str, retrieved_chunks: str = "") -> str:
+    """Break a PRD section into tickets, optionally matching ticket style via RAG."""
     client = get_client()
+
+    if retrieved_chunks:
+        prompt = TICKET_PROMPT_WITH_RAG.format(
+            prd_section=prd_section,
+            retrieved_chunks=retrieved_chunks,
+        )
+    else:
+        prompt = LINEAR_TICKET_PROMPT.format(prd_section=prd_section)
 
     response = client.messages.create(
         model="claude-sonnet-4-20250514",
         max_tokens=2048,
-        messages=[
-            {"role": "user", "content": LINEAR_TICKET_PROMPT.format(prd_section=prd_section)}
-        ],
+        messages=[{"role": "user", "content": prompt}],
     )
 
     return response.content[0].text

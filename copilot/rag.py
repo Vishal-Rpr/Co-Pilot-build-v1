@@ -1,14 +1,17 @@
-"""RAG layer: ingest reference PRDs and retrieve relevant chunks."""
+"""RAG layer: ingest reference PRDs and tickets, retrieve relevant chunks."""
 
-import os
 from pathlib import Path
 
 import chromadb
 from chromadb.utils import embedding_functions
 
-REFERENCE_DIR = Path(__file__).parent.parent / "reference_docs"
-CHROMA_DIR = Path(__file__).parent.parent / ".chroma"
-COLLECTION_NAME = "prd_references"
+PROJECT_ROOT = Path(__file__).parent.parent
+REFERENCE_DIRS = {
+    "prd": PROJECT_ROOT / "reference_docs",
+    "ticket": PROJECT_ROOT / "reference_tickets",
+}
+CHROMA_DIR = PROJECT_ROOT / ".chroma"
+COLLECTION_NAME = "pm_references"
 
 
 def get_collection():
@@ -43,23 +46,14 @@ def chunk_document(text: str, chunk_size: int = 500, overlap: int = 50) -> list[
     return chunks
 
 
-def ingest_references() -> int:
-    """Read all markdown files from reference_docs/ and store in ChromaDB.
+def _ingest_directory(collection, ref_dir: Path, doc_type: str) -> int:
+    """Ingest all .md files from a directory with doc_type metadata."""
+    if not ref_dir.exists():
+        return 0
 
-    Returns the number of chunks ingested.
-    """
-    collection = get_collection()
-
-    # Clear existing data for clean re-ingest
-    existing = collection.get()
-    if existing["ids"]:
-        collection.delete(ids=existing["ids"])
-
-    md_files = list(REFERENCE_DIR.glob("*.md"))
+    md_files = list(ref_dir.glob("*.md"))
     if not md_files:
-        raise FileNotFoundError(
-            f"No .md files found in {REFERENCE_DIR}. Add your reference PRDs there."
-        )
+        return 0
 
     all_chunks = []
     all_ids = []
@@ -70,17 +64,55 @@ def ingest_references() -> int:
         chunks = chunk_document(text)
 
         for i, chunk in enumerate(chunks):
-            chunk_id = f"{file_path.stem}_chunk_{i}"
+            chunk_id = f"{doc_type}_{file_path.stem}_chunk_{i}"
             all_chunks.append(chunk)
             all_ids.append(chunk_id)
-            all_metadata.append({"source": file_path.name, "chunk_index": i})
+            all_metadata.append({
+                "source": file_path.name,
+                "chunk_index": i,
+                "doc_type": doc_type,
+            })
 
-    collection.add(documents=all_chunks, ids=all_ids, metadatas=all_metadata)
+    if all_chunks:
+        collection.add(documents=all_chunks, ids=all_ids, metadatas=all_metadata)
+
     return len(all_chunks)
 
 
-def retrieve(query: str, n_results: int = 3) -> str:
+def ingest_references() -> dict[str, int]:
+    """Ingest markdown files from reference_docs/ and reference_tickets/.
+
+    Returns a dict with chunk counts per doc_type, e.g. {"prd": 12, "ticket": 5}.
+    """
+    collection = get_collection()
+
+    existing = collection.get()
+    if existing["ids"]:
+        collection.delete(ids=existing["ids"])
+
+    counts = {}
+    total = 0
+    for doc_type, ref_dir in REFERENCE_DIRS.items():
+        count = _ingest_directory(collection, ref_dir, doc_type)
+        counts[doc_type] = count
+        total += count
+
+    if total == 0:
+        raise FileNotFoundError(
+            "No .md files found in reference_docs/ or reference_tickets/. "
+            "Add your reference PRDs and/or tickets there."
+        )
+
+    return counts
+
+
+def retrieve(query: str, n_results: int = 3, doc_type: str | None = None) -> str:
     """Retrieve the most relevant chunks for a given query.
+
+    Args:
+        query: Search query text.
+        n_results: Number of chunks to return.
+        doc_type: Optional filter -- "prd" or "ticket". None returns all types.
 
     Returns chunks joined as a single string for prompt injection.
     """
@@ -89,7 +121,10 @@ def retrieve(query: str, n_results: int = 3) -> str:
     if collection.count() == 0:
         return ""
 
-    results = collection.query(query_texts=[query], n_results=n_results)
+    where_filter = {"doc_type": doc_type} if doc_type else None
+    results = collection.query(
+        query_texts=[query], n_results=n_results, where=where_filter
+    )
 
     chunks = results["documents"][0] if results["documents"] else []
     return "\n\n---\n\n".join(chunks)

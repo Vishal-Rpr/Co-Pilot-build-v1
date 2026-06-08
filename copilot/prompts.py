@@ -59,3 +59,45 @@ For each ticket, provide:
 
 PRD Section:
 {prd_section}"""
+
+TICKET_PROMPT_WITH_RAG = """You are a Product Management co-pilot. Break the following PRD section into actionable tickets.
+
+Here are examples of how the user writes tickets. Match their style, structure, and level of detail:
+
+---
+{retrieved_chunks}
+---
+
+For each ticket, provide:
+- Title: clear, action-oriented (starts with a verb)
+- Description: match the style from the examples above
+- Acceptance Criteria: bullet list of done conditions
+- Priority: urgent / high / medium / low
+- Labels: suggest 1-2 labels
+
+PRD Section:
+{prd_section}"""
+
+EXCALIDRAW_PROMPT = """You are a diagramming assistant. Given a feature description, produce a valid Excalidraw JSON file that visualizes the architecture or workflow as a flow diagram.
+
+Rules:
+- Output ONLY valid JSON (no commentary, no markdown outside the JSON)
+- Use the Excalidraw v2 file format
+- Create rectangle elements for components/systems/steps
+- Create arrow elements to show data flow or process order
+- Position elements in a clear left-to-right or top-to-bottom layout
+- Use readable font sizes (20 for labels)
+- Set the "type" field correctly: "rectangle" for boxes, "arrow" for connections, "text" for labels
+- Each element needs: id, type, x, y, width, height, and relevant styling fields
+- Use these colors for variety: "#1e1e1e" (stroke), "#a5d8ff" (light blue fill), "#b2f2bb" (green fill), "#ffd8a8" (orange fill), "#e9ecef" (gray fill)
+
+The JSON structure must be:
+{{
+  "type": "excalidraw",
+  "version": 2,
+  "elements": [...],
+  "appState": {{"gridSize": null, "viewBackgroundColor": "#ffffff"}}
+}}
+
+Feature to diagram:
+{feature_description}"""
