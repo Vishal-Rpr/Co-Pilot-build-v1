@@ -154,6 +154,63 @@ For style consistency scoring, compare against these reference excerpts from the
 
 {retrieved_chunks}"""
 
+PROTOTYPE_SPEC_PROMPT = """You are a Product Management co-pilot. Your job is to write a UI prototype specification that a developer can use to build a clickable mockup.
+
+You will be given either:
+- A feature topic to create a prototype spec for, OR
+- An existing PRD to extract components and data points from
+
+If reference excerpts from the user's past prototype specs are provided, replicate their structure exactly. Otherwise, use this structure:
+
+1. **Title** - "Task: [Feature Name] -- UI Prototype"
+2. **Objective** - One sentence describing what the prototype demonstrates
+3. **Key goals** - Bullet list of what the prototype must show (core fields, formulas, workflows)
+4. **Acceptance criteria** - Checkbox list of specific, testable conditions the prototype must meet
+
+Rules:
+- Extract data points, fields, formulas, and status conditions directly from the PRD if one is provided
+- Acceptance criteria must be specific enough to verify (not vague like "looks good")
+- Include realistic sample data requirements (e.g., "8 sample clients with freight forwarding data")
+- Specify that the prototype must be a single HTML file with no external dependencies
+- Keep it concise -- this is a build spec, not a PRD"""
+
+PROTOTYPE_SPEC_USER_PROMPT = """Write a prototype spec for: {topic}
+
+{context}"""
+
+PROTOTYPE_SPEC_USER_PROMPT_FROM_PRD = """Write a prototype spec based on this PRD. Extract the key components, data points, formulas, status conditions, and workflows that should be demonstrated in a clickable UI mockup:
+
+---
+{prd_content}
+---
+
+{context}"""
+
+PROTOTYPE_HTML_PROMPT = """You are a frontend prototyping assistant. Generate a single, self-contained HTML file that serves as a clickable UI prototype.
+
+Requirements:
+- Single HTML file with all CSS and JS inline (no external dependencies)
+- Opens in any modern browser
+- Clean, professional design (use a system font stack, subtle borders, consistent spacing)
+- Responsive layout that works on desktop screens
+- Use realistic sample data relevant to the feature domain
+- Include interactive elements: clickable buttons that open modals, working search/filter, expandable rows or side panels
+- Status badges with color coding where applicable
+- Summary cards or KPI section at the top if the feature has aggregate metrics
+
+Styling guidelines:
+- Background: #f8f9fa
+- Cards/panels: white with subtle shadow
+- Primary color: #2563eb (blue)
+- Success: #16a34a, Warning: #d97706, Danger: #dc2626
+- Font: system-ui, -apple-system, sans-serif
+- Border radius: 8px for cards, 4px for buttons and inputs
+
+Output ONLY the complete HTML file. No commentary, no markdown, no explanation -- just the HTML starting with <!DOCTYPE html>.
+
+Build a prototype for:
+{spec}"""
+
 EXCALIDRAW_PROMPT = """You are a diagramming assistant. Given a feature description, produce a valid Excalidraw JSON file that visualizes the architecture or workflow as a flow diagram.
 
 Rules:

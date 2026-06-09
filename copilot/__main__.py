@@ -108,6 +108,55 @@ def tickets(prd_file: str, target: str):
 
 
 @cli.command()
+@click.argument("topic", required=False, default=None)
+@click.option("--from", "from_prd", type=click.Path(exists=True), default=None, help="Generate prototype from an existing PRD file.")
+@click.option("--output", "-o", default="prototype", help="Output directory for spec.md and index.html.")
+@click.option("--no-spec", is_flag=True, help="Skip spec generation, only produce HTML.")
+@click.option("--no-html", is_flag=True, help="Skip HTML generation, only produce spec.")
+def prototype(topic: str, from_prd: str, output: str, no_spec: bool, no_html: bool):
+    """Generate a UI prototype spec and clickable HTML mockup."""
+    from .prototype import generate_prototype_spec, generate_prototype_html, save_prototype
+
+    if not topic and not from_prd:
+        click.echo("Error: provide a TOPIC or --from PRD_FILE.", err=True)
+        raise SystemExit(1)
+
+    prd_content = ""
+    if from_prd:
+        with open(from_prd, "r", encoding="utf-8") as f:
+            prd_content = f.read()
+        click.echo(f"Building prototype from PRD: {from_prd}")
+    else:
+        click.echo(f"Building prototype for: {topic}")
+
+    proto_style = retrieve(topic or prd_content[:300], doc_type="prototype")
+
+    spec = ""
+    html = ""
+
+    if not no_spec:
+        click.echo("Generating prototype spec...")
+        spec = generate_prototype_spec(
+            topic=topic or "",
+            prd_content=prd_content,
+            retrieved_chunks=proto_style,
+        )
+
+    if not no_html:
+        if not spec and not no_spec:
+            click.echo("No spec generated, cannot produce HTML.", err=True)
+            raise SystemExit(1)
+        html_input = spec if spec else prd_content or topic
+        click.echo("Generating HTML prototype...")
+        html = generate_prototype_html(html_input)
+
+    saved = save_prototype(output, spec=spec, html=html)
+    for ftype, path in saved.items():
+        click.echo(f"  {ftype}: {path}")
+    click.echo("Done.")
+
+
+@cli.command()
 @click.argument("feature")
 @click.option("--output", "-o", default=None, help="Save diagram to .excalidraw file.")
 def diagram(feature: str, output: str):
