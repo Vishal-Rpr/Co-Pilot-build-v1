@@ -95,16 +95,13 @@ tests/
   test_rag.py          13 pytest tests for chunking, ingestion, and retrieval
 ```
 
-## What This Demonstrates
+## Design decisions
 
-- **RAG pipeline:** Chunking, embedding, similarity search, retrieval with doc_type filtering
-- **Eval framework:** 5-dimension rubric with automated scoring, verdicts, and improvement suggestions
-- **Prompt engineering:** System prompts, style-matching instructions, structured generation
-- **Multi-integration architecture:** Linear, Jira, Confluence, Excalidraw via a consistent lightweight pattern
-- **CLI design:** Click-based interface with composable commands
-- **Test coverage:** pytest suite for the RAG pipeline (chunking, ingestion, retrieval, doc_type filtering)
-- **Prototype generation:** PRD-to-clickable-HTML pipeline -- spec extraction + single-file browser prototype
-- **AI product thinking:** Style matching as a differentiator, opt-in eval (cost-conscious default), model selection tradeoffs
+- **RAG over fine-tuning** — Works with 2–3 reference docs; no training cost or hundreds of examples required
+- **Opt-in eval** — Every eval is an API call; default stays cheap and fast; users score when they want a quality gate
+- **Adaptive style matching** — The system prompt reverse-engineers patterns from whatever references you provide, not hardcoded section names
+- **Lightweight integrations** — REST/GraphQL via urllib and API keys; no SDKs, easy to audit and fork
+- **CLI first** — Validates the pipeline before investing in conversational UI or a web front-end
 
 ## Roadmap
 
