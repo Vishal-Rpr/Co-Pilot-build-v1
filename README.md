@@ -122,4 +122,4 @@ This is a CLI tool by design -- it validates the core AI pipeline with the least
 
 ## Author
 
-Vishal Baker -- Product Manager in B2B freight forwarding, building AI product tools.
+Vishal Prabhakar -- Senior Product Manager in B2B freight forwarding, building AI product tools.
