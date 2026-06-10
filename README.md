@@ -2,8 +2,6 @@
 
 A RAG-powered CLI tool that helps product managers write PRDs, generate tracker-ready tickets, build clickable UI prototypes, visualize workflows in Excalidraw, and publish docs to Confluence -- all in the user's personal writing style.
 
-> **Disclaimer:** The sample documents in `reference_docs/` and `reference_prototypes/` are illustrative examples for demonstrating style-matching only. They use a fictional B2B freight context and contain no company-specific, confidential, or proprietary data; any cost figures are rough estimates, not actual vendor pricing.
-
 ## Problem
 
 Generic AI tools produce cookie-cutter output that doesn't match your voice or your team's conventions. You end up rewriting most of it anyway. And once you have a PRD, turning it into tickets, diagrams, and published docs is a separate manual process every time.
@@ -122,3 +120,5 @@ This is a CLI tool by design -- it validates the core AI pipeline with the least
 ## Author
 
 Vishal Prabhakar -- Senior Product Manager in B2B freight forwarding, building AI product tools.
+
+> **Disclaimer:** The sample documents in `reference_docs/` and `reference_prototypes/` are illustrative examples for demonstrating style-matching only. They use a fictional B2B freight context and contain no company-specific, confidential, or proprietary data; any cost figures are rough estimates, not actual vendor pricing.
