@@ -1,13 +1,15 @@
 # PRD: Market rate benchmarking for RFQ quoting
 
+> _Sample reference document for writing-style matching only. Fictional B2B freight context; cost figures are illustrative estimates, not actual vendor pricing._
+
 ## Overview
-Integrate an ocean and air freight rate intelligence platform into our RFQ workflow so that every quote shared with a client is validated against an independent market benchmark. The goal is to ensure our pricing is competitive (not leaving money on the table) and defensible (not quoting below market), with minimal added time to the quoting process.
+Integrate an ocean and air freight rate intelligence platform into the RFQ workflow so that every quote shared with a client is validated against an independent market benchmark. The goal is to ensure pricing is competitive (not leaving money on the table) and defensible (not quoting below market), with minimal added time to the quoting process.
 
 ## Goals
 - Benchmark every RFQ against market rates before the quote reaches the client
 - Keep the benchmarking step fast enough that it doesn't slow down quote turnaround
-- Give the quoting team a clear market position indicator (are we above, at, or below market?)
-- Build a data layer that over time reveals which lanes we're consistently strong or weak on
+- Give the quoting team a clear market position indicator (above, at, or below market?)
+- Build a data layer that over time reveals which lanes are consistently strong or weak
 
 ## Non-goals
 - Replacing human judgment in pricing -- this is decision-support, not auto-pricing
@@ -22,7 +24,7 @@ Integrate an ocean and air freight rate intelligence platform into our RFQ workf
 The quoting team receives an RFQ, pulls buy rates from carriers and NVOCCs, applies margin, and sends the quote. There is no systematic check of whether the final price is competitive relative to the broader market. Pricing instincts are based on experience, not data.
 
 ### What this changes
-Before a quote is sent, the system queries the rate intelligence API for the market rate on that origin-destination-container type combination and displays a benchmark comparison. The quoting user sees whether our proposed rate is below, at, or above the market low/average/high -- and can adjust accordingly.
+Before a quote is sent, the system queries the rate intelligence API for the market rate on that origin-destination-container type combination and displays a benchmark comparison. The quoting user sees whether the proposed rate is below, at, or above the market low/average/high -- and can adjust accordingly.
 
 ### Speed requirement
 RFQ turnaround is time-sensitive. The benchmarking lookup must add no more than **2-3 seconds** to the workflow. Rate intelligence APIs typically respond in under 1 second for port-to-port queries, which fits this constraint.
@@ -31,16 +33,16 @@ RFQ turnaround is time-sensitive. The benchmarking lookup must add no more than 
 
 ## Approach evaluation: Standard API vs. MCP wrapper
 
-Both approaches use the same underlying rate intelligence REST API and the same platform subscription. The difference is in how the integration is consumed within our systems.
+Both approaches use the same underlying rate intelligence REST API and the same platform subscription. The difference is in how the integration is consumed within the platform.
 
 ### Option A: Standard API integration
 
-Direct backend integration -- our application server calls the rate intelligence API during the quoting flow.
+Direct backend integration -- the application server calls the rate intelligence API during the quoting flow.
 
 **How it works:**
 - Backend service calls the estimated-rates endpoint with origin port, destination port, container type, and date
 - Response returns market low, average, and high rates
-- Our UI displays the benchmark alongside the proposed quote
+- The UI displays the benchmark alongside the proposed quote
 
 **Pros:**
 - Deterministic and predictable -- same query always returns same result
@@ -100,14 +102,14 @@ Build a lightweight MCP (Model Context Protocol) server that wraps the API, enab
 
 ### Rate intelligence subscription (applies to both approaches)
 
-Rate intelligence platforms do not typically publish pricing. All plans are custom-quoted based on volume, lanes, and features.
+Rate intelligence platforms do not typically publish pricing. All plans are custom-quoted based on volume, lanes, and features. The figures below are illustrative order-of-magnitude estimates for planning only, not actual vendor quotes.
 
-| Cost component | Estimated range | Notes |
+| Cost component | Illustrative range | Notes |
 |----------------|----------------|-------|
-| Platform subscription (ocean) | $20,000-$50,000/yr | Varies by forwarder size; smaller orgs trend lower |
-| API add-on | Included or $5,000-$15,000/yr | Depends on call quota |
+| Platform subscription (ocean) | low-to-mid five figures/yr | Varies widely by forwarder size; smaller orgs trend lower |
+| API add-on | Included, or a low-five-figure add-on/yr | Depends on call quota |
 | Monthly call quota | Defined per plan | Exceeding quota may trigger warnings or temporary suspension |
-| Typical ROI claim | Recovered in 1 tender cycle | Vendors report customers see 3-5% freight spend savings |
+| Typical ROI claim | Recovered within a tender cycle | Vendors market low-single-digit % freight spend savings |
 
 ### MCP wrapper build cost (one-time, Phase 1)
 
@@ -131,13 +133,13 @@ Rate intelligence platforms do not typically publish pricing. All plans are cust
 
 ### Total cost comparison (Year 1)
 
-| Scenario | Platform sub | Build cost | Total |
+| Scenario | Platform sub | Build cost | Relative total |
 |----------|-------------|------------|-------|
-| MCP only (Phase 1) | $20K-$50K | $700-$2K | $20.7K-$52K |
-| Standard API only | $20K-$50K | $5K-$15K | $25K-$65K |
-| Both (recommended) | $20K-$50K | $5.7K-$17K | $25.7K-$67K |
+| MCP only (Phase 1) | five-figure subscription | low (hundreds-low thousands) | subscription + minimal build |
+| Standard API only | five-figure subscription | mid (low-five figures) | subscription + moderate build |
+| Both (recommended) | five-figure subscription | mid (low-five figures) | subscription + moderate build |
 
-**The key insight:** The platform subscription is 80-90% of the cost regardless of approach. The MCP vs. standard API decision is a build strategy question, not a cost question.
+**The key insight:** The platform subscription dominates total cost (roughly 80-90%) regardless of approach. The MCP vs. standard API decision is a build strategy question, not a cost question.
 
 ---
 
@@ -147,14 +149,14 @@ Rate intelligence platforms do not typically publish pricing. All plans are cust
 
 | Advantage | Detail |
 |-----------|--------|
-| Data depth | Hundreds of millions of rates from real contracts and spot transactions across 170K+ port pairs |
+| Data depth | Very large dataset of real contract and spot transactions across a broad set of global port pairs |
 | Rate granularity | Market low, average, high, plus carrier-level spread |
-| Short vs. long-term rates | Distinguishes spot (<32 days) from contract (>87 days) -- critical for matching your RFQ type |
-| Container type coverage | 20' dry, 20' reefer, 40' dry, 40' HC, 40' reefer HC, 20' tank |
-| Surcharge inclusion | Rates include BAF, CAF, ETS, canal surcharges -- apples-to-apples comparison |
+| Short vs. long-term rates | Distinguishes short-term/spot from long-term/contract rates -- critical for matching the RFQ type |
+| Container type coverage | Standard dry, reefer, and high-cube equipment across 20' and 40' sizes |
+| Surcharge inclusion | Rates include common surcharges (e.g., BAF, CAF, ETS, canal) -- apples-to-apples comparison |
 | API response speed | Sub-second response times for port-to-port queries; fits the fast turnaround requirement |
-| Estimated rates | When direct data is thin on a lane, the platform calculates estimates using leg-based decomposition |
-| Market position scoring | See where your rate sits in the market distribution, not just a single number |
+| Estimated rates | When direct data is thin on a lane, the platform returns modeled estimates |
+| Market position scoring | See where the proposed rate sits in the market distribution, not just a single number |
 
 ### Cons
 
@@ -163,7 +165,7 @@ Rate intelligence platforms do not typically publish pricing. All plans are cust
 | No public pricing | Cannot evaluate cost without a sales conversation | Request a demo and quote; push for a pilot/trial period |
 | Monthly call quota | High-volume RFQ benchmarking could burn through quota fast | Implement a caching layer -- rates don't change hourly; a 6-12 hour cache per lane is reasonable |
 | LCL coverage gap | Strongest on FCL; LCL data is thinner | Continue using NVOCC rates as the LCL benchmark |
-| No third-party data sharing | API license prohibits sharing data directly with clients | Use internally only; show clients your quote, not the benchmark source |
+| No third-party data sharing | API license prohibits sharing data directly with clients | Use internally only; show clients the quote, not the benchmark source |
 | Rate limiting (HTTP 429) | Burst queries during peak quoting hours could hit limits | Queue and throttle API calls; caching reduces this significantly |
 | Geo-hierarchy fallback | On thin lanes, may return rates for a broader region instead of exact port pair | Surface actual origin/destination metadata so users know the granularity |
 | Aggregated rates only | Market averages, not a specific carrier's bookable rate | By design for benchmarking; not a buy rate substitute |
@@ -199,7 +201,7 @@ Since every RFQ triggers a benchmark lookup, and the quoting team may handle doz
 - Logging and audit trail for every benchmark check
 
 ### Phase 3: Analytics and expansion (Week 7+)
-- Lane-level analytics: which routes are we consistently above/below market?
+- Lane-level analytics: which routes are consistently above/below market?
 - Margin optimization suggestions based on market position
 - Air freight benchmarking
 - Historical trend view per lane
@@ -207,11 +209,11 @@ Since every RFQ triggers a benchmark lookup, and the quoting team may handle doz
 ---
 
 ## Open questions
-- What is our actual daily/monthly RFQ volume? This directly determines the API quota tier needed
-- Do we want the benchmark to be mandatory (blocking) before a quote is sent, or advisory (optional)?
+- What is the actual daily/monthly RFQ volume? This directly determines the API quota tier needed
+- Should the benchmark be mandatory (blocking) before a quote is sent, or advisory (optional)?
 - Which team members get access to the MCP wrapper vs. the production UI?
-- Should we cache at the application level, or would a shared cache across the quoting team be more appropriate?
-- What is our split between FCL and LCL RFQs? (Determines how much value the platform adds vs. needing a separate LCL benchmark)
+- Should caching happen at the application level, or would a shared cache across the quoting team be more appropriate?
+- What is the split between FCL and LCL RFQs? (Determines how much value the platform adds vs. needing a separate LCL benchmark)
 
 ---
 
@@ -219,6 +221,6 @@ Since every RFQ triggers a benchmark lookup, and the quoting team may handle doz
 - Percentage of RFQs benchmarked before quote is sent to client (target: >90% within 60 days)
 - Average time added to quoting workflow by the benchmark step (target: <3 seconds)
 - Reduction in quotes that come back as "too high" from clients (directional)
-- Number of lanes identified where our pricing was significantly above/below market
+- Number of lanes identified where pricing was significantly above/below market
 - API call volume vs. quota utilization (target: stay below 80%)
 - Quote win rate trend after benchmarking is live
