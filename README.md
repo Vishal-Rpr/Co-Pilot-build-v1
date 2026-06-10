@@ -100,7 +100,7 @@ tests/
 - **RAG over fine-tuning** — Works with 2–3 reference docs; no training cost or hundreds of examples required
 - **Opt-in eval** — Every eval is an API call; default stays cheap and fast; users score when they want a quality gate
 - **Adaptive style matching** — The system prompt reverse-engineers patterns from whatever references you provide, not hardcoded section names
-- **Lightweight integrations** — REST/GraphQL via urllib and API keys; no SDKs, easy to audit and fork
+- **Lightweight integrations** — REST/GraphQL using API keys
 - **CLI first** — Validates the pipeline before investing in conversational UI or a web front-end
 
 ## Roadmap
