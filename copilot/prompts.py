@@ -56,7 +56,7 @@ Here are excerpts from my previous PRDs. Study them carefully and replicate my e
 {retrieved_chunks}
 ---
 
-{context}"""
+{domain_context}{context}"""
 
 LINEAR_TICKET_PROMPT = """You are a Product Management co-pilot. Break the following PRD section into actionable Linear tickets.
 

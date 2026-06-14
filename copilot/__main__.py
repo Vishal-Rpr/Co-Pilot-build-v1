@@ -37,6 +37,7 @@ def generate(topic: str, context: str, no_rag: bool, output: str, run_eval: bool
     click.echo(f"Generating PRD for: {topic}")
 
     retrieved = ""
+    domain_chunks = ""
     if not no_rag:
         click.echo("Retrieving style examples from your reference docs...")
         retrieved = retrieve(topic, doc_type="prd")
@@ -45,7 +46,11 @@ def generate(topic: str, context: str, no_rag: bool, output: str, run_eval: bool
         else:
             click.echo("No reference docs ingested yet. Using standard template.")
 
-    prd = generate_prd(topic=topic, retrieved_chunks=retrieved, context=context)
+        domain_chunks = retrieve(topic, doc_type="knowledge", n_results=5)
+        if domain_chunks:
+            click.echo("Found domain knowledge. Injecting freight context...")
+
+    prd = generate_prd(topic=topic, retrieved_chunks=retrieved, context=context, domain_chunks=domain_chunks)
 
     if output:
         with open(output, "w", encoding="utf-8") as f:

@@ -10,6 +10,7 @@ REFERENCE_DIRS = {
     "prd": PROJECT_ROOT / "reference_docs",
     "ticket": PROJECT_ROOT / "reference_tickets",
     "prototype": PROJECT_ROOT / "reference_prototypes",
+    "knowledge": PROJECT_ROOT / "reference_knowledge",
 }
 CHROMA_DIR = PROJECT_ROOT / ".chroma"
 COLLECTION_NAME = "pm_references"

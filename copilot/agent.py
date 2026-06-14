@@ -24,22 +24,31 @@ def get_client():
     return Anthropic(api_key=api_key)
 
 
-def generate_prd(topic: str, retrieved_chunks: str = "", context: str = "") -> str:
-    """Generate a PRD using Claude, optionally with RAG-retrieved style examples."""
+def generate_prd(topic: str, retrieved_chunks: str = "", context: str = "", domain_chunks: str = "") -> str:
+    """Generate a PRD using Claude, optionally with RAG-retrieved style examples and domain knowledge."""
     client = get_client()
+
+    domain_context = ""
+    if domain_chunks:
+        domain_context = (
+            "Here is relevant domain knowledge about the industry and workflows. "
+            "Use this to ensure technical accuracy, realistic data flows, compliance details, and edge cases:\n\n"
+            f"---\n{domain_chunks}\n---\n\n"
+        )
 
     if retrieved_chunks:
         system = SYSTEM_PROMPT
         user_message = PRD_USER_PROMPT_WITH_RAG.format(
             topic=topic,
             retrieved_chunks=retrieved_chunks,
+            domain_context=domain_context,
             context=context or "No additional context provided.",
         )
     else:
         system = SYSTEM_PROMPT_NO_RAG
         user_message = PRD_USER_PROMPT.format(
             topic=topic,
-            context=context or "No additional context provided.",
+            context=(domain_context + (context or "No additional context provided.")),
         )
 
     response = client.messages.create(
